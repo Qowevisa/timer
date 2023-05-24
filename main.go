@@ -137,16 +137,16 @@ func parseTimeString(end *time.Time, timeString string) error {
 		offset/3600)
 
 	// Parse time string
-	now, err = time.Parse(time.RFC3339, _timeString)
+	ret, err := time.Parse(time.RFC3339, _timeString)
 	if err != nil {
 		return err
 	}
 
-	if now.Hour() < hours {
-		now = now.Add(24 * time.Hour)
+	if ret.Unix() < now.Unix() {
+		ret = ret.Add(24 * time.Hour)
 	}
 
-	*end = now
+	*end = ret
 	return nil
 }
 
@@ -200,7 +200,14 @@ func main() {
 						Name: name,
 						End:  end,
 					}
-					fmt.Printf("Started timer %d : %s -> %dh\n", counter, name, hours)
+					fmt.Printf(
+						"%sStarted timer %d%s : %s%s%s\n",
+						colors.Green(),
+						counter,
+						colors.Reset(),
+						colors.Blue(),
+						name,
+						colors.Reset())
 					counter++
 					mutex.Unlock()
 					saveTimers()
@@ -216,7 +223,11 @@ func main() {
 					loadTimers()
 					mutex.Lock()
 					if len(timers) > 0 {
-						fmt.Printf("You have %d timers\n", len(timers))
+						fmt.Printf(
+							"You have %s%d%s timers\n",
+							colors.Blue(),
+							len(timers),
+							colors.Reset())
 					} else {
 						fmt.Printf("You don't have any timers. Set up with add command\n")
 						return nil
