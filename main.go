@@ -243,7 +243,6 @@ func main() {
 							}
 						}
 					}
-					fmt.Printf("\n")
 					mutex.Unlock()
 					return nil
 				},
@@ -266,7 +265,6 @@ func main() {
 					} else {
 						fmt.Printf("%sNo timer with id %d%s\n", colors.Red(), id, colors.Reset())
 					}
-					fmt.Printf("\n")
 					mutex.Unlock()
 					saveTimers()
 
