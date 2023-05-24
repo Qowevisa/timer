@@ -8,10 +8,10 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -24,9 +24,33 @@ var (
 	timers  = make(map[int]*Timer)
 	counter = -1
 	mutex   = &sync.Mutex{}
+	colors  = Colors{}
 )
 
 const TempFile = "/tmp/timers.json"
+
+// Colors
+type Colors struct{}
+
+func (c Colors) Reset() string {
+	return "\033[38;5;7m"
+}
+
+func (c Colors) Red() string {
+	return "\033[38;5;1m"
+}
+
+func (c Colors) Green() string {
+	return "\033[38;5;2m"
+}
+
+func (c Colors) Yellow() string {
+	return "\033[38;5;3m"
+}
+
+func (c Colors) Blue() string {
+	return "\033[38;5;4m"
+}
 
 func loadTimers() {
 	mutex.Lock()
@@ -61,6 +85,71 @@ func saveTimers() {
 	ioutil.WriteFile(TempFile, data, 0644)
 }
 
+func parseTimeString(end *time.Time, timeString string) error {
+	parts := strings.Split(timeString, ":")
+	var hours, mins, secs int
+	var err error
+	switch len(parts) {
+	case 1:
+		hours, err = strconv.Atoi(parts[0])
+		if err != nil {
+			return err
+		}
+		break
+	case 2:
+		hours, err = strconv.Atoi(parts[0])
+		if err != nil {
+			return err
+		}
+
+		mins, err = strconv.Atoi(parts[1])
+		if err != nil {
+			return err
+		}
+		break
+	case 3:
+		hours, err = strconv.Atoi(parts[0])
+		if err != nil {
+			return err
+		}
+
+		mins, err = strconv.Atoi(parts[1])
+		if err != nil {
+			return err
+		}
+
+		secs, err = strconv.Atoi(parts[2])
+		if err != nil {
+			return err
+		}
+		break
+	}
+	now := time.Now()
+	_, offset := now.Zone()
+	_timeString := fmt.Sprintf(
+		"%d-%02d-%02dT%02d:%02d:%02d+%02d:00",
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		hours,
+		mins,
+		secs,
+		offset/3600)
+
+	// Parse time string
+	now, err = time.Parse(time.RFC3339, _timeString)
+	if err != nil {
+		return err
+	}
+
+	if now.Hour() < hours {
+		now = now.Add(24 * time.Hour)
+	}
+
+	*end = now
+	return nil
+}
+
 func main() {
 	app := &cli.App{
 		UseShortOptionHandling: true,
@@ -82,17 +171,29 @@ func main() {
 					mins := cCtx.Int("minutes")
 					secs := cCtx.Int("seconds")
 					timeString := cCtx.String("time")
+					var end time.Time
 					if hours == 0 && mins == 0 && secs == 0 {
 						if timeString == "" {
-							color.Red("You didn't set up any of the needed arguments. Stupid")
+							fmt.Printf(
+								"%sYou didn't set up any of the needed arguments. Stupid%s\n",
+								colors.Red(),
+								colors.Reset(),
+							)
 							return nil
 						} else {
 							// TODO tokenize this shit
+							err := parseTimeString(&end, timeString)
+							if err != nil {
+								fmt.Printf("%sERROR: %s%s\n", colors.Red(), err, colors.Reset())
+								return nil
+							}
 						}
+					} else {
+						now := time.Now()
+						end = now.Add(time.Duration(hours) * time.Hour)
+						end = end.Add(time.Duration(mins) * time.Minute)
+						end = end.Add(time.Duration(secs) * time.Second)
 					}
-					end := time.Now().Add(time.Duration(secs) * time.Second)
-					end = end.Add(time.Duration(mins) * time.Minute)
-					end = end.Add(time.Duration(hours) * time.Hour)
 					loadTimers()
 					mutex.Lock()
 					timers[counter] = &Timer{
@@ -129,16 +230,16 @@ func main() {
 						// printing stuff
 						fmt.Printf("%d : %s -> ", id, timer.Name)
 						if mils <= 0 {
-							color.Green("Finished\n")
+							fmt.Printf("%sFinished%s\n", colors.Green(), colors.Reset())
 						} else {
 							_mins := int(math.Floor(timerLeft.Minutes()))
 							switch {
 							case 0 <= _mins && _mins <= 15:
-								color.Red("%02d:%02d:%02d.%04d left", hours, mins, secs, mils)
+								fmt.Printf("%s%02d:%02d:%02d.%04d%s left\n", colors.Red(), hours, mins, secs, mils, colors.Reset())
 							case 16 <= _mins && _mins <= 30:
-								color.Yellow("%02d:%02d:%02d.%04d left", hours, mins, secs, mils)
+								fmt.Printf("%s%02d:%02d:%02d.%04d%s left\n", colors.Yellow(), hours, mins, secs, mils, colors.Reset())
 							default:
-								color.Blue("%02d:%02d:%02d.%04d left", hours, mins, secs, mils)
+								fmt.Printf("%s%02d:%02d:%02d.%04d%s left\n", colors.Blue(), hours, mins, secs, mils, colors.Reset())
 							}
 						}
 					}
@@ -161,9 +262,9 @@ func main() {
 					mutex.Lock()
 					if _, exists := timers[id]; exists {
 						delete(timers, id)
-						color.Green("Deleted timer %d\n", id)
+						fmt.Printf("%sDeleted timer %d%s\n", colors.Green(), id, colors.Reset())
 					} else {
-						color.Red("No timer with id %d\n", id)
+						fmt.Printf("%sNo timer with id %d%s\n", colors.Red(), id, colors.Reset())
 					}
 					fmt.Printf("\n")
 					mutex.Unlock()
