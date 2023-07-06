@@ -74,9 +74,7 @@ func loadTimers() {
 	}
 
 	json.Unmarshal(data, &timers)
-	for id, timer := range timers {
-		if timer.Name == "123" {
-		}
+	for id := range timers {
 		if id > counter {
 			counter = id
 		}
