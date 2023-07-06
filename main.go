@@ -319,6 +319,76 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name:    "wait",
+				Aliases: []string{"w"},
+				Usage:   "wait for a new timer",
+				Flags: []cli.Flag{
+					&cli.IntFlag{Name: "hours", Aliases: []string{"H"}},
+					&cli.IntFlag{Name: "minutes", Aliases: []string{"M"}},
+					&cli.IntFlag{Name: "seconds", Aliases: []string{"S"}},
+					&cli.StringFlag{Name: "time", Aliases: []string{"T"}},
+					&cli.StringFlag{Name: "name", Aliases: []string{"n"}},
+				},
+				Action: func(cCtx *cli.Context) error {
+					hours := cCtx.Int("hours")
+					mins := cCtx.Int("minutes")
+					secs := cCtx.Int("seconds")
+					name := cCtx.String("name")
+					timeString := cCtx.String("time")
+					var end time.Time
+					if hours == 0 && mins == 0 && secs == 0 {
+						if timeString == "" {
+							fmt.Printf(
+								"%sYou didn't set up any of the needed arguments. Stupid%s\n",
+								colors.Red(),
+								colors.Reset(),
+							)
+							return nil
+						} else {
+							// TODO tokenize this shit
+							err := parseTimeString(&end, timeString)
+							if err != nil {
+								fmt.Printf("%sERROR: %s%s\n", colors.Red(), err, colors.Reset())
+								return nil
+							}
+						}
+					} else {
+						now := time.Now()
+						end = now.Add(time.Duration(hours) * time.Hour)
+						end = end.Add(time.Duration(mins) * time.Minute)
+						end = end.Add(time.Duration(secs) * time.Second)
+					}
+					fmt.Printf(
+						"%sStarted timer %s%s%s\n",
+						colors.Green(),
+						colors.Blue(),
+						name,
+						colors.Reset())
+					dur := end.Sub(time.Now())
+					timer := time.NewTimer(dur)
+					fmt.Printf("%sWill wait ", colors.Green())
+					fmt.Print(dur)
+					fmt.Printf("!%s\n", colors.Reset())
+					stop := make(chan bool, 1)
+					go func() {
+						<-timer.C
+						stop <- true
+					}()
+					for {
+						select {
+						case <-stop:
+							fmt.Printf("%s%s%sFinished!%s\a\n", esc.ClearLine(), esc.MoveHorCur(), colors.Blue(), colors.Reset())
+							return nil
+						default:
+							fmt.Printf("%s%sNeed to wait %s", esc.ClearLine(), esc.MoveHorCur(), colors.Blue())
+							fmt.Print(formatDuration(end.Sub(time.Now())))
+							fmt.Printf("%s until the timer finishes", colors.Reset())
+							time.Sleep(250 * time.Millisecond)
+						}
+					}
+				},
+			},
 		},
 	}
 
