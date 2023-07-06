@@ -389,7 +389,6 @@ func main() {
 					}
 				},
 			},
-			// TODO also add one-way timer that just waits for specific amount of time and then bells
 		},
 	}
 
