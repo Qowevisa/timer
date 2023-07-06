@@ -70,6 +70,7 @@ func loadTimers() {
 
 	data, err := ioutil.ReadFile(TempFile)
 	if err != nil {
+		counter = 0
 		return
 	}
 
