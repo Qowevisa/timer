@@ -161,6 +161,23 @@ func parseTimeString(end *time.Time, timeString string) error {
 	return nil
 }
 
+func formatDuration(d time.Duration) string {
+	total := float64(d)
+	var unit string
+	switch {
+	case d >= time.Hour:
+		total = total / float64(time.Hour)
+		unit = "h"
+	case d >= time.Minute:
+		total = total / float64(time.Minute)
+		unit = "m"
+	default:
+		total = total / float64(time.Second)
+		unit = "s"
+	}
+	return fmt.Sprintf("%.2f%s", total, unit)
+}
+
 func main() {
 	app := &cli.App{
 		UseShortOptionHandling: true,
