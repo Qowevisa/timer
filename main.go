@@ -25,9 +25,21 @@ var (
 	counter = -1
 	mutex   = &sync.Mutex{}
 	colors  = Colors{}
+	esc     = Escape{}
 )
 
 const TempFile = "/tmp/timers.json"
+
+// Escape strings
+type Escape struct{}
+
+func (e Escape) ClearLine() string {
+	return "\033[2K"
+}
+
+func (e Escape) MoveHorCur() string {
+	return "\033[G"
+}
 
 // Colors
 type Colors struct{}
