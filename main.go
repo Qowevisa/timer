@@ -337,6 +337,7 @@ func main() {
 					name := cCtx.String("name")
 					timeString := cCtx.String("time")
 					var end time.Time
+					var dur time.Duration
 					if hours == 0 && mins == 0 && secs == 0 {
 						if timeString == "" {
 							fmt.Printf(
@@ -355,9 +356,10 @@ func main() {
 						}
 					} else {
 						now := time.Now()
-						end = now.Add(time.Duration(hours) * time.Hour)
-						end = end.Add(time.Duration(mins) * time.Minute)
-						end = end.Add(time.Duration(secs) * time.Second)
+						dur = time.Duration(hours) * time.Hour
+						dur += time.Duration(mins) * time.Minute
+						dur += time.Duration(secs) * time.Second
+						end = now.Add(dur)
 					}
 					fmt.Printf(
 						"%sStarted timer %s%s%s\n",
@@ -365,11 +367,11 @@ func main() {
 						colors.Blue(),
 						name,
 						colors.Reset())
-					dur := end.Sub(time.Now())
-					timer := time.NewTimer(dur)
+					_dur := end.Sub(time.Now())
 					fmt.Printf("%sWill wait ", colors.Green())
 					fmt.Print(dur)
 					fmt.Printf("!%s\n", colors.Reset())
+					timer := time.NewTimer(_dur)
 					stop := make(chan bool, 1)
 					go func() {
 						<-timer.C
